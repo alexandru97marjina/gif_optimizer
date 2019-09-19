@@ -18,15 +18,17 @@ import java.util.List;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        List<Integer> lossyValues = Arrays.asList(100,110,120);
-        List<String> names = getFileNames("original_v2");
-//        optimizeGif(names, lossyValues,"original_v2","optimized_v2");
-//        optimizeImg("original_img.jpg", "compressed-5.jpg");
-//        optmizeImgToWebP("original_img.jpg", "compressed-webp.webp","20");
+        List<Integer> lossyValues = Arrays.asList(50,60,70,80,90);
+        List<Float> qualityValues = Arrays.asList(0.3f,0.5f,0.7f);
+//        optimizeGifFromDirectory(lossyValues,"original_v2","optimized_v3");
+        optimizeImgFromDirectory(qualityValues,"original_img", "compressed_img");
+//        optmizeImgToWebP("original_img.jpg", "compressed-webp-20.webp","20");
 
     }
 
-    static void optimizeGif(List<String> fileNames, List<Integer> lossyValues,String originalDirectory, String outDirectory) throws IOException {
+    static void optimizeGifFromDirectory(List<Integer> lossyValues, String originalDirectory, String outDirectory) throws IOException {
+        List<String> fileNames = getFileNames(originalDirectory);
+
         Path path;
         Path path2;
         Path path3;
@@ -42,7 +44,6 @@ public class Main {
         final String cmd = "./gifsicle -O3 --lossy=BBB --colors=254 -o AAA.gif CCC.gif";
 
         try {
-            String line;
 
             for (String name : fileNames) {
                 path = Paths.get(optimizedDirectoryPath + name.replace(".gif",""));
@@ -70,7 +71,39 @@ public class Main {
 
     }
 
-    static void optimizeImg(String inputFile, String outputFile) throws IOException {
+    static void optimizeImgFromDirectory(List<Float> qualityValues, String originalDirectory, String outDirectory) throws IOException {
+        List<String> fileNames = getFileNames(originalDirectory);
+
+        Path path;
+        Path path2;
+        Path path3;
+        Process p = null;
+        String nameFileCompres;
+        String originDirectory = originalDirectory + "/";
+        String nameFileOriginal;
+        String fileOriginalPath;
+        String optimizedDirectoryPath =outDirectory + "/";
+        Files.createDirectory(Paths.get(outDirectory));
+        String directory;
+
+        for (String name : fileNames) {
+            path = Paths.get(optimizedDirectoryPath + name.replace(".jpg",""));
+            Files.createDirectory(path);
+            fileOriginalPath = originDirectory + name;
+            directory = optimizedDirectoryPath + name.replace(".jpg","") + "/";
+            path2 = Paths.get(fileOriginalPath);
+            path3 = Paths.get(directory + name);
+            Files.copy(path2, path3, StandardCopyOption.REPLACE_EXISTING);
+            nameFileOriginal = directory + name;
+            for (Float qualityValue : qualityValues) {
+                nameFileCompres = directory + name.replace(".jpg","-" + qualityValue +".jpg");
+                optimizeImg(nameFileOriginal,nameFileCompres,qualityValue);
+            }
+        }
+
+    }
+
+    static void optimizeImg(String inputFile, String outputFile,float compressionQuality) throws IOException {
         File input = new File(inputFile);
         BufferedImage image = ImageIO.read(input);
 
@@ -84,7 +117,7 @@ public class Main {
         ImageWriteParam param = writer.getDefaultWriteParam();
         if (param.canWriteCompressed()) {
             param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-            param.setCompressionQuality(0.5f);
+            param.setCompressionQuality(compressionQuality);
         }
 
         writer.write(null, new IIOImage(image, null, null), param);
@@ -92,23 +125,6 @@ public class Main {
         out.close();
         ios.close();
         writer.dispose();
-    }
-
-    static List<String> getFileNames(String path){
-        File folder = new File(path);
-        File[] listOfFiles = folder.listFiles();
-        List<String> fileNames = new ArrayList<>();
-
-        for (int i = 0; i < listOfFiles.length; i++) {
-            if (listOfFiles[i].isFile()) {
-                System.out.println("File " + listOfFiles[i].getName());
-                fileNames.add(listOfFiles[i].getName());
-            } else if (listOfFiles[i].isDirectory()) {
-                System.out.println("Directory " + listOfFiles[i].getName());
-            }
-        }
-
-        return fileNames;
     }
 
     static void optmizeImgToWebP(String inputFile, String outputFile, String quality) throws IOException {
@@ -127,6 +143,23 @@ public class Main {
             err.printStackTrace();
         }
 
+    }
+
+    static List<String> getFileNames(String path){
+        File folder = new File(path);
+        File[] listOfFiles = folder.listFiles();
+        List<String> fileNames = new ArrayList<>();
+
+        for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isFile()) {
+                System.out.println("File " + listOfFiles[i].getName());
+                fileNames.add(listOfFiles[i].getName());
+            } else if (listOfFiles[i].isDirectory()) {
+                System.out.println("Directory " + listOfFiles[i].getName());
+            }
+        }
+
+        return fileNames;
     }
 
     static void showConsoleOutput(Process p) throws IOException, InterruptedException {
